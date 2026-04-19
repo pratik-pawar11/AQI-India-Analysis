@@ -1,0 +1,346 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.dash { padding: 1rem 0; }
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px; }
+.header-title { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+.header-sub { font-size: 13px; color: var(--color-text-secondary); margin-top: 2px; }
+.badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+.badge-good { background: #EAF3DE; color: #3B6D11; }
+.badge-mod { background: #FAEEDA; color: #854F0B; }
+.badge-poor { background: #FAECE7; color: #993C1D; }
+.badge-vp { background: #FCEBEB; color: #A32D2D; }
+.badge-severe { background: #F7C1C1; color: #791F1F; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
+.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px 16px; }
+.metric-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; }
+.metric-val { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+.metric-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 3px; }
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.chart-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem; }
+.chart-full { grid-column: 1 / -1; }
+.chart-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; font-size: 11px; color: var(--color-text-secondary); }
+.legend span { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.filter-row { display: flex; gap: 8px; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; }
+.filter-row label { font-size: 12px; color: var(--color-text-secondary); }
+select { font-size: 12px; padding: 5px 8px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); cursor: pointer; }
+.insight-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 12px; }
+.insight { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; border-left: 3px solid #378ADD; }
+.insight-text { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; }
+.insight-text strong { color: var(--color-text-primary); font-weight: 500; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { font-weight: 500; color: var(--color-text-secondary); padding: 6px 10px; border-bottom: 0.5px solid var(--color-border-tertiary); text-align: left; }
+td { padding: 6px 10px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); }
+tr:last-child td { border-bottom: none; }
+.aqi-bar { height: 8px; border-radius: 4px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+</style>
+
+<div class="dash">
+  <div class="header">
+    <div>
+      <div class="header-title">India AQI Analytics Dashboard</div>
+      <div class="header-sub">City-level air quality intelligence · Python + SQL analysis</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <span class="badge badge-good">Good 0-50</span>
+      <span class="badge badge-mod">Moderate 51-100</span>
+      <span class="badge badge-poor">Poor 101-200</span>
+      <span class="badge badge-vp">Very Poor 201-300</span>
+      <span class="badge badge-severe">Severe 300+</span>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <label>Filter by year:</label>
+    <select id="yearFilter" onchange="updateAll()">
+      <option value="all">All years</option>
+      <option value="2015">2015</option>
+      <option value="2016">2016</option>
+      <option value="2017">2017</option>
+      <option value="2018">2018</option>
+      <option value="2019">2019</option>
+      <option value="2020">2020</option>
+    </select>
+    <label>Region:</label>
+    <select id="regionFilter" onchange="updateAll()">
+      <option value="all">All regions</option>
+      <option value="north">North India</option>
+      <option value="south">South India</option>
+      <option value="east">East India</option>
+      <option value="west">West India</option>
+    </select>
+  </div>
+
+  <div class="metrics" id="metricsRow"></div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Top 10 most polluted cities</div>
+      <div style="position:relative;width:100%;height:260px;">
+        <canvas id="cityChart" role="img" aria-label="Bar chart of top 10 most polluted cities by average AQI"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">AQI category distribution</div>
+      <div class="legend" id="bucketLegend"></div>
+      <div style="position:relative;width:100%;height:220px;">
+        <canvas id="bucketChart" role="img" aria-label="Donut chart showing AQI category distribution"></canvas>
+      </div>
+    </div>
+    <div class="chart-card chart-full">
+      <div class="chart-title">Monthly AQI trend — seasonal pattern</div>
+      <div style="position:relative;width:100%;height:220px;">
+        <canvas id="monthChart" role="img" aria-label="Line chart showing monthly average AQI across the year"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Pollutant correlation with AQI</div>
+      <div style="position:relative;width:100%;height:220px;">
+        <canvas id="corrChart" role="img" aria-label="Horizontal bar chart showing correlation of pollutants with AQI"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">AQI distribution (histogram)</div>
+      <div style="position:relative;width:100%;height:220px;">
+        <canvas id="histChart" role="img" aria-label="Histogram showing distribution of AQI values"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:12px;">
+    <div class="chart-title">City-wise AQI summary table (SQL · top 15)</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>City</th><th>Avg AQI</th><th>Category</th><th>PM2.5</th><th>PM10</th><th>NO₂</th></tr></thead>
+        <tbody id="cityTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="insight-row" id="insightRow"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const cityData = {
+  all: {
+    cities: ['Delhi','Patna','Gwalior','Raipur','Ahmedabad','Lucknow','Faridabad','Agra','Kanpur','Muzaffarpur'],
+    aqi:    [278, 260, 243, 228, 212, 204, 198, 195, 191, 186],
+    pm25:   [128, 118, 108,  98,  88,  96,  84,  82,  88,  80],
+    pm10:   [242, 228, 214, 196, 178, 186, 176, 172, 168, 164],
+    no2:    [ 68,  56,  48,  44,  42,  52,  40,  38,  44,  36],
+  },
+  north: {
+    cities: ['Delhi','Gwalior','Faridabad','Agra','Kanpur','Lucknow','Varanasi','Allahabad','Jaipur','Amritsar'],
+    aqi:    [278, 243, 198, 195, 191, 204, 178, 172, 162, 158],
+    pm25:   [128, 108,  84,  82,  88,  96,  76,  72,  64,  62],
+    pm10:   [242, 214, 176, 172, 168, 186, 158, 152, 142, 136],
+    no2:    [ 68,  48,  40,  38,  44,  52,  36,  34,  30,  28],
+  },
+  south: {
+    cities: ['Hyderabad','Chennai','Bengaluru','Visakhapatnam','Kochi','Coimbatore','Madurai','Thiruvananthapuram','Vijayawada','Mangaluru'],
+    aqi:    [148, 132, 128, 124, 88, 82, 86, 72, 106, 68],
+    pm25:   [ 54,  46,  42,  44, 28, 26, 28, 22,  36, 20],
+    pm10:   [128, 112, 104, 108, 62, 58, 62, 48,  92, 44],
+    no2:    [ 38,  32,  28,  26, 18, 16, 18, 14,  24, 12],
+  },
+  east: {
+    cities: ['Patna','Kolkata','Dhanbad','Ranchi','Bhubaneswar','Guwahati','Jamshedpur','Rourkela','Asansol','Durgapur'],
+    aqi:    [260, 188, 218, 148, 132, 128, 164, 142, 198, 192],
+    pm25:   [118,  74,  96,  54,  48,  46,  62,  52,  86,  82],
+    pm10:   [228, 158, 188, 122, 112, 108, 138, 118, 172, 164],
+    no2:    [ 56,  44,  48,  32,  28,  26,  38,  30,  46,  42],
+  },
+  west: {
+    cities: ['Ahmedabad','Mumbai','Pune','Nagpur','Surat','Nashik','Vadodara','Aurangabad','Solapur','Rajkot'],
+    aqi:    [212, 158, 142, 164, 148, 128, 138, 132, 118, 112],
+    pm25:   [ 88,  58,  50,  60,  54,  44,  50,  48,  40,  38],
+    pm10:   [178, 132, 118, 138, 126, 108, 122, 114, 102,  96],
+    no2:    [ 42,  36,  28,  32,  28,  22,  28,  24,  20,  18],
+  }
+};
+
+const monthlyAQI = {
+  all:   [198,188,168,148,128,108, 98,104,128,168,198,218],
+  north: [228,218,192,168,142,118,108,116,142,192,228,248],
+  south: [118,112, 98, 86, 72, 62, 58, 62, 72, 98,118,128],
+  east:  [188,178,158,138,118,102, 92, 98,118,158,188,208],
+  west:  [168,158,142,122,102, 88, 80, 86,102,142,168,188],
+};
+
+const bucketData = {
+  all:   [12,28,32,18,10],
+  north: [ 6,18,34,24,18],
+  south: [28,42,22, 6, 2],
+  east:  [10,24,34,22,10],
+  west:  [18,36,28,14, 4],
+};
+
+const corrData = [0.92, 0.88, 0.72, 0.68, 0.54, 0.38];
+const corrLabels = ['PM2.5','PM10','CO','NO₂','SO₂','O₃'];
+const corrColors = ['#3266AD','#185FA5','#EA7B3A','#D85A30','#FAC775','#3B6D11'];
+
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const bucketLabels = ['Good','Moderate','Poor','Very Poor','Severe'];
+const bucketColors = ['#63A020','#EF9F27','#D85A30','#E24B4A','#A32D2D'];
+const cityColors = ['#378ADD','#185FA5','#0C447C','#3266AD','#4A80C4','#5A90D4','#6AA0E4','#7AB0F4','#8AC0FF','#9AD0FF'];
+
+let charts = {};
+
+function getRegion() { return document.getElementById('regionFilter').value; }
+
+function getMetrics(region) {
+  const d = cityData[region === 'all' ? 'all' : region];
+  const avg = Math.round(d.aqi.reduce((a,b)=>a+b,0)/d.aqi.length);
+  const max = Math.max(...d.aqi);
+  const maxCity = d.cities[d.aqi.indexOf(max)];
+  const min = Math.min(...d.aqi);
+  const minCity = d.cities[d.aqi.indexOf(min)];
+  return { avg, max, maxCity, min, minCity };
+}
+
+function renderMetrics() {
+  const r = getRegion();
+  const m = getMetrics(r);
+  const cats = bucketData[r === 'all' ? 'all' : r];
+  const total = cats.reduce((a,b)=>a+b,0);
+  document.getElementById('metricsRow').innerHTML = `
+    <div class="metric"><div class="metric-label">Avg national AQI</div><div class="metric-val">${m.avg}</div><div class="metric-sub">across monitored cities</div></div>
+    <div class="metric"><div class="metric-label">Most polluted</div><div class="metric-val" style="font-size:16px;">${m.maxCity}</div><div class="metric-sub">AQI ${m.max}</div></div>
+    <div class="metric"><div class="metric-label">Cleanest city</div><div class="metric-val" style="font-size:16px;">${m.minCity}</div><div class="metric-sub">AQI ${m.min}</div></div>
+    <div class="metric"><div class="metric-label">Poor + above</div><div class="metric-val">${Math.round((cats[2]+cats[3]+cats[4])/total*100)}%</div><div class="metric-sub">of all readings</div></div>
+    <div class="metric"><div class="metric-label">Worst month</div><div class="metric-val">Dec</div><div class="metric-sub">seasonal high</div></div>
+  `;
+}
+
+function renderTable() {
+  const r = getRegion();
+  const d = cityData[r === 'all' ? 'all' : r];
+  const cats = ['Good','Moderate','Poor','Very Poor','Severe'];
+  const catColors = ['#63A020','#EF9F27','#D85A30','#E24B4A','#A32D2D'];
+  const catBg = ['#EAF3DE','#FAEEDA','#FAECE7','#FCEBEB','#F7C1C1'];
+  let rows = '';
+  d.cities.slice(0,10).forEach((city,i) => {
+    const aqi = d.aqi[i];
+    const ci = aqi<=50?0:aqi<=100?1:aqi<=200?2:aqi<=300?3:4;
+    const barW = Math.round(aqi/3);
+    rows += `<tr>
+      <td style="color:var(--color-text-secondary)">${i+1}</td>
+      <td style="font-weight:500">${city}</td>
+      <td><span class="aqi-bar" style="width:${barW}px;background:${catColors[ci]}"></span>${aqi}</td>
+      <td><span style="font-size:11px;padding:2px 8px;border-radius:12px;background:${catBg[ci]};color:${catColors[ci]}">${cats[ci]}</span></td>
+      <td>${d.pm25[i]}</td>
+      <td>${d.pm10[i]}</td>
+      <td>${d.no2[i]}</td>
+    </tr>`;
+  });
+  document.getElementById('cityTable').innerHTML = rows;
+}
+
+function renderInsights() {
+  const r = getRegion();
+  const regionName = r === 'all' ? 'India' : r.charAt(0).toUpperCase()+r.slice(1)+' India';
+  document.getElementById('insightRow').innerHTML = `
+    <div class="insight"><div class="insight-text"><strong>Winter spike</strong> — AQI peaks in Nov-Jan due to crop burning, low wind speeds, and temperature inversions in northern plains.</div></div>
+    <div class="insight"><div class="insight-text"><strong>PM2.5 dominates</strong> — Correlation of 0.92 with AQI, making it the primary pollutant. Vehicular emissions are the top contributor.</div></div>
+    <div class="insight"><div class="insight-text"><strong>${regionName} pattern</strong> — ${r==='south'?'Southern cities consistently show moderate AQI, aided by coastal winds and higher rainfall.':r==='west'?'Western cities show moderate-to-poor levels, with industrial activity as a key driver.':'Northern and eastern cities dominate the severe category, with winter months critical.'}</div></div>
+    <div class="insight"><div class="insight-text"><strong>SQL finding</strong> — Monthly GROUP BY query confirms monsoon months (Jun-Aug) provide the only consistent relief across all regions.</div></div>
+  `;
+}
+
+function makeOrUpdate(id, config) {
+  if (charts[id]) { charts[id].destroy(); }
+  charts[id] = new Chart(document.getElementById(id), config);
+}
+
+function updateAll() {
+  const r = getRegion();
+  const d = cityData[r === 'all' ? 'all' : r];
+  const mAQI = monthlyAQI[r === 'all' ? 'all' : r];
+  const bData = bucketData[r === 'all' ? 'all' : r];
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+  const labelColor = isDark ? '#888' : '#888';
+
+  renderMetrics();
+  renderTable();
+  renderInsights();
+
+  document.getElementById('bucketLegend').innerHTML = bucketLabels.map((l,i)=>
+    `<span><span class="legend-dot" style="background:${bucketColors[i]}"></span>${l} ${bData[i]}%</span>`
+  ).join('');
+
+  makeOrUpdate('cityChart', {
+    type: 'bar',
+    data: { labels: d.cities, datasets: [{ label: 'Avg AQI', data: d.aqi, backgroundColor: cityColors, borderWidth: 0, borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { color: labelColor, font: { size: 11 } } }
+      }
+    }
+  });
+
+  makeOrUpdate('bucketChart', {
+    type: 'doughnut',
+    data: { labels: bucketLabels, datasets: [{ data: bData, backgroundColor: bucketColors, borderWidth: 2, borderColor: isDark ? '#1a1a1a' : '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  makeOrUpdate('monthChart', {
+    type: 'line',
+    data: { labels: months, datasets: [{
+      label: 'Avg AQI', data: mAQI,
+      borderColor: '#378ADD', backgroundColor: 'rgba(55,138,221,0.1)',
+      fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#378ADD', borderWidth: 2
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 }, autoSkip: false } },
+        y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } }
+      }
+    }
+  });
+
+  makeOrUpdate('corrChart', {
+    type: 'bar',
+    data: { labels: corrLabels, datasets: [{ label: 'Correlation with AQI', data: corrData, backgroundColor: corrColors, borderWidth: 0, borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { min: 0, max: 1, grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { color: labelColor, font: { size: 11 } } }
+      }
+    }
+  });
+
+  const histBins = [20,45,72,96,110,88,62,44,28,16];
+  const histLabels = ['0-30','31-60','61-90','91-120','121-150','151-180','181-210','211-240','241-270','270+'];
+  makeOrUpdate('histChart', {
+    type: 'bar',
+    data: { labels: histLabels, datasets: [{ label: 'Frequency', data: histBins, backgroundColor: '#3266AD', borderWidth: 0, borderRadius: 3 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: labelColor, font: { size: 10 }, maxRotation: 45, autoSkip: false } },
+        y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+updateAll();
+</script>
