@@ -59,7 +59,7 @@ AQI-India-Analysis/
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/YOUR_USERNAME/AQI-India-Analysis.git
+git clone https://github.com/pratik-pawar11/AQI-India-Analysis.git
 cd AQI-India-Analysis
 ```
 
@@ -77,7 +77,7 @@ jupyter notebook AQI_India_Project.ipynb
 
 Open `AQI_India_Dashboard.html` directly in any browser — no setup needed.
 
-Or view it live: [**AQI India Dashboard →**](https://YOUR_USERNAME.github.io/AQI-India-Analysis/AQI_India_Dashboard.html)
+Or view it live: [**AQI India Dashboard →**](https://pratik-pawar11.github.io/AQI-India-Analysis/AQI_India_Dashboard.html)
 
 ---
 
@@ -101,10 +101,10 @@ The dataset (`city_day.csv`) contains daily AQI readings for Indian cities with 
 
 ## 📬 Contact
 
-**Your Name**
-- GitHub: [@YOUR_USERNAME](https://github.com/YOUR_USERNAME)
-- LinkedIn: [linkedin.com/in/YOUR_PROFILE](https://linkedin.com/in/YOUR_PROFILE)
-- Email: your.email@example.com
+**Pratik Pawar**
+- GitHub: [@pratik-pawar11](https://github.com/pratik-pawar11)
+- LinkedIn: [linkedin.com/in/pratikpawar14](https://www.linkedin.com/in/pratikpawar14/)
+- Email: pratikpawar1250@gmail.com
 
 ---
 
