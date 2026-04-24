@@ -109,3 +109,5 @@ The dataset (`city_day.csv`) contains daily AQI readings for Indian cities with 
 ---
 
 *Made with Python, SQL, and curiosity about India's air quality 🇮🇳*
+Author Pratik Pawar
+
